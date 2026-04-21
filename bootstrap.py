@@ -38,6 +38,7 @@ def _prepend_path(*dirs: str) -> None:
 
 
 def _ensure_brew() -> str:
+    print("Checking for Homebrew...", flush=True)
     brew = _find_brew()
     if not brew:
         print(
@@ -45,12 +46,18 @@ def _ensure_brew() -> str:
             file=sys.stderr,
         )
         sys.exit(1)
+    print(f"Found Homebrew at {brew}.", flush=True)
     return brew
 
 
 def _ensure_brew_package(brew: str, command: str, formula: str) -> None:
     if shutil.which(command):
+        print(f"`{command}` is already on PATH; skipping `brew install {formula}`.", flush=True)
         return
+    print(
+        f"Installing `{formula}` with Homebrew so `{command}` is available...",
+        flush=True,
+    )
     subprocess.run([brew, "install", formula], check=True)
     _prepend_path("/opt/homebrew/bin", "/usr/local/bin")
     if not shutil.which(command):
@@ -67,15 +74,23 @@ def main() -> None:
     _ensure_brew_package(brew, "gh", "gh")
     _ensure_brew_package(brew, "uv", "uv")
 
+    print(
+        "Starting interactive GitHub CLI login (`gh auth login`); follow the prompts...",
+        flush=True,
+    )
     subprocess.run(["gh", "auth", "login"], check=True)
 
     release_tag = os.environ.get(_RELEASE_TAG_ENV, "").strip()
     release_label = release_tag if release_tag else "latest release"
 
     with tempfile.TemporaryDirectory(prefix="flctl-download.") as download_dir:
+        print(
+            f"Downloading `*.whl` from {REPO} ({release_label}) into a temporary directory...",
+            flush=True,
+        )
         gh_download = ["gh", "release", "download"]
         if release_tag:
-            gh_download.append(release_tag)            
+            gh_download.append(release_tag)
         gh_download.extend(
             [
                 "--repo",
@@ -103,6 +118,10 @@ def main() -> None:
             )
             sys.exit(1)
         wheel_path = str(wheels[0])
+        print(
+            f"Installing flctl from {Path(wheel_path).name} with `uv tool install -U`...",
+            flush=True,
+        )
         subprocess.run(["uv", "tool", "install", "-U", wheel_path], check=True)
 
 
