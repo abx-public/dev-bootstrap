@@ -10,6 +10,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+REVISION = "0.0.1"
 REPO = "abx-ltd/python.flctl"
 _RELEASE_TAG_ENV = "RELEASE_TAG"
 
@@ -99,6 +100,7 @@ def _ensure_gh_session() -> None:
 
 
 def main() -> None:
+    print(f"Bootstrapping dev tools rev. {REVISION}...", flush=True)
     brew = _ensure_brew()
     _ensure_brew_package(brew, "gh", "gh")
     _ensure_brew_package(brew, "uv", "uv")
