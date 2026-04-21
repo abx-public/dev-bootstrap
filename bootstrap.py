@@ -69,16 +69,41 @@ def _ensure_brew_package(brew: str, command: str, formula: str) -> None:
         sys.exit(1)
 
 
+def _ensure_gh_session() -> None:
+    print("Checking whether `gh` is already authenticated with GitHub...", flush=True)
+    status = subprocess.run(
+        ["gh", "auth", "status"],
+        capture_output=True,
+        text=True,
+    )
+    if status.returncode == 0:
+        who = subprocess.run(
+            ["gh", "api", "user", "-q", ".login"],
+            capture_output=True,
+            text=True,
+        )
+        login = who.stdout.strip() if who.returncode == 0 else ""
+        if login:
+            print(f"Logged in to GitHub as `{login}`; skipping `gh auth login`.", flush=True)
+        else:
+            print(
+                "GitHub CLI session looks valid; continuing without `gh auth login`.",
+                flush=True,
+            )
+        return
+    print(
+        "Not logged in to GitHub. Starting interactive `gh auth login`; follow the prompts...",
+        flush=True,
+    )
+    subprocess.run(["gh", "auth", "login"], check=True)
+
+
 def main() -> None:
     brew = _ensure_brew()
     _ensure_brew_package(brew, "gh", "gh")
     _ensure_brew_package(brew, "uv", "uv")
 
-    print(
-        "Starting interactive GitHub CLI login (`gh auth login`); follow the prompts...",
-        flush=True,
-    )
-    subprocess.run(["gh", "auth", "login"], check=True)
+    _ensure_gh_session()
 
     release_tag = os.environ.get(_RELEASE_TAG_ENV, "").strip()
     release_label = release_tag if release_tag else "latest release"
